@@ -39,6 +39,7 @@ pub struct JsonRpcNotification {
 
 // MCP Protocol types
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InitializeRequest {
     pub protocol_version: String,
     pub capabilities: ClientCapabilities,
@@ -47,6 +48,7 @@ pub struct InitializeRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InitializeResponse {
     pub protocol_version: String,
     pub capabilities: ServerCapabilities,
@@ -95,6 +97,7 @@ pub struct ServerInfo {
 
 // Tool definitions
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Tool {
     pub name: String,
     pub description: String,

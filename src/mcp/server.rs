@@ -170,7 +170,7 @@ async fn handle_single_request(state: McpServerState, request: JsonRpcRequest) -
 
 async fn handle_initialize(_state: McpServerState, request: JsonRpcRequest) -> JsonRpcResponse {
     let response = InitializeResponse {
-        protocol_version: "1.0".to_string(),
+        protocol_version: "2024-11-05".to_string(),
         capabilities: ServerCapabilities {
             tools: Some(ToolsCapability {}),
             resources: None,
