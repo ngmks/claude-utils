@@ -69,6 +69,11 @@ enum Commands {
         /// Disable notifications
         #[arg(long)]
         no_notifications: bool,
+
+        /// Enable WSL path format (convert C:\... to /mnt/c/...)
+        /// Use this when running on Windows but pasting paths in WSL terminal
+        #[arg(long)]
+        wsl: bool,
     },
 
     /// Show authentication token
@@ -125,6 +130,7 @@ async fn main() -> Result<()> {
             symlink_dir,
             no_dual_format,
             no_notifications,
+            wsl,
         } => {
             info!("Starting Claude-Utils clipboard daemon...");
 
@@ -158,6 +164,10 @@ async fn main() -> Result<()> {
             if watch {
                 info!("Clipboard watching enabled");
 
+                if wsl {
+                    info!("WSL path format enabled (paths will be /mnt/c/...)");
+                }
+
                 let processor_config = ProcessorConfig {
                     symlink_dir: symlink_dir.unwrap_or_else(|| {
                         dirs::home_dir()
@@ -166,6 +176,7 @@ async fn main() -> Result<()> {
                     }),
                     enable_dual_format: !no_dual_format,
                     enable_notifications: !no_notifications,
+                    enable_wsl_paths: wsl,
                     ..Default::default()
                 };
 

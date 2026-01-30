@@ -5,11 +5,24 @@ use tokio::fs;
 use tokio::sync::mpsc;
 use tracing::{error, info, warn};
 
-use super::{
-    watcher::{platform::DualClipboard, ClipboardEvent},
-    ClipboardContent,
-};
+use super::{watcher::ClipboardEvent, ClipboardContent};
 use crate::{file_manager::FileManager, Result};
+
+#[cfg(target_os = "macos")]
+use super::watcher::platform::DualClipboard;
+
+/// Convert Windows path to WSL format
+/// Example: C:\Users\name\file.png -> /mnt/c/Users/name/file.png
+fn convert_to_wsl_path(path: &str) -> String {
+    // Check if it's a Windows path with drive letter (e.g., C:\...)
+    if path.len() >= 3 && path.chars().nth(1) == Some(':') && path.chars().nth(2) == Some('\\') {
+        let drive = path.chars().next().unwrap().to_ascii_lowercase();
+        let rest = &path[3..];
+        format!("/mnt/{}/{}", drive, rest.replace('\\', "/"))
+    } else {
+        path.to_string()
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct ProcessorConfig {
@@ -18,6 +31,8 @@ pub struct ProcessorConfig {
     pub keep_symlinks: usize,
     pub enable_dual_format: bool,
     pub enable_notifications: bool,
+    /// Enable WSL path format conversion (C:\... -> /mnt/c/...)
+    pub enable_wsl_paths: bool,
 }
 
 impl Default for ProcessorConfig {
@@ -30,6 +45,7 @@ impl Default for ProcessorConfig {
             keep_symlinks: 5,
             enable_dual_format: true,
             enable_notifications: true,
+            enable_wsl_paths: false,
         }
     }
 }
@@ -102,7 +118,12 @@ impl ClipboardProcessor {
 
         // Set dual clipboard if enabled
         if self.config.enable_dual_format {
-            let path_str = symlink_path.to_string_lossy();
+            let raw_path = symlink_path.to_string_lossy();
+            let path_str = if self.config.enable_wsl_paths {
+                convert_to_wsl_path(&raw_path)
+            } else {
+                raw_path.to_string()
+            };
 
             #[cfg(target_os = "macos")]
             {
@@ -147,8 +168,13 @@ impl ClipboardProcessor {
             let symlink_path = self.create_symlink(&staged.path, "txt").await?;
             event.symlink_path = Some(symlink_path.clone());
 
-            // Update clipboard with path
-            let path_str = symlink_path.to_string_lossy();
+            // Update clipboard with path (convert to WSL format if enabled)
+            let raw_path = symlink_path.to_string_lossy();
+            let path_str = if self.config.enable_wsl_paths {
+                convert_to_wsl_path(&raw_path)
+            } else {
+                raw_path.to_string()
+            };
             self.set_text_clipboard(&path_str)?;
 
             // Clean up old symlinks
